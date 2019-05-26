@@ -12,8 +12,8 @@ def main(search_words):
     queries = create_queries(products)
     article_ids = get_pubmed_ids(queries)
     articles = get_articles(article_ids)
-    print(articles)
-    preprocess_data(articles)
+    abstracts = preprocess_data(articles)
+    print(abstracts)
 
 
 def create_products(search_words):
@@ -55,30 +55,40 @@ def get_articles(pubmed_ids):
             record = Entrez.read(handle)
             records.append(record)
             handle.close()
+        else:
+            records.append(False)
 
     return records
 
 
 def preprocess_data(data):
+    output = []
+    index = 0
+
     for search in data:
+        output.append([])
         abstracts = []
 
-        for article in search["PubmedArticle"]:
-            abstract = ""
-            if "Abstract" in article["MedlineCitation"]["Article"]:
-                for line in article["MedlineCitation"]["Article"]["Abstract"]["AbstractText"]:
-                    abstract +=line
+        if search:
+            for article in search["PubmedArticle"]:
+                abstract = ""
+                if "Abstract" in article["MedlineCitation"]["Article"]:
+                    for line in article["MedlineCitation"]["Article"]["Abstract"]["AbstractText"]:
+                        abstract += line
 
-                abstracts.append(abstract)
+                    abstracts.append(abstract)
 
-        if len(abstracts) > 0:
-            for abstract in abstracts:
-                tokens = nltk.word_tokenize(abstract)
-                tokens = [token for token in tokens if token.isalpha()]
-                stop_words = stopwords.words("english")
-                tokens = [token.lower() for token in tokens if token.lower() not in stop_words]
-                print(tokens)
-                print(tokens.count("syndrome"))
+            if len(abstracts) > 0:
+                for abstract in abstracts:
+                    tokens = nltk.word_tokenize(abstract)
+                    tokens = [token for token in tokens if token.isalpha()]
+                    stop_words = stopwords.words("english")
+                    tokens = [token.lower() for token in tokens if token.lower() not in stop_words]
+                    output[index].append(tokens)
+
+        index += 1
+
+    return output
 
 
 # sys.argv[0]
