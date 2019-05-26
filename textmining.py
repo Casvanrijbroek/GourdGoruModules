@@ -11,15 +11,17 @@ Entrez.email = "casvanrijbroek@hotmail.com"
 def main(search_words):
     products = create_products(search_words)
     queries = create_queries(products)
-    mine(list(products), queries)
+    output = mine(list(products), queries)
+
+    return output
 
 
 def mine(search_words, queries):
-    full_output = {}
+    full_output = []
 
     for index in range(len(search_words)):
         ids, mesh_terms = get_pubmed_ids(queries[index])
-        output = {}
+        output = []
 
         if len(ids) > 0:
             articles = get_articles(ids)
@@ -29,30 +31,40 @@ def mine(search_words, queries):
                 if abstracts[article_index] is False:
                     score = 0
                 else:
-                    score = calculate_score(mesh_terms, abstracts[article_index])
+                    score = calculate_score(mesh_terms, abstracts[article_index],
+                                            articles["PubmedArticle"][article_index]["MedlineCitation"]
+                                            ["Article"]["ArticleTitle"].lower())
 
-                article = articles["PubmedArticle"][article_index]["MedlineCitation"]
-                authors = []
+                output.append(format_output(articles, article_index, score))
 
-                for author in article["Article"]["AuthorList"]:
-                    if "ForeName" in author:
-                        authors.append(author.get("ForeName") + " " + author.get("LastName"))
-                    else:
-                        authors.append(author.get("LastName"))
+        full_output.append({"keywords": search_words[index],
+                            "articles": output})
 
-                pub_date = "unknown"
+    return full_output
 
-                for date in articles["PubmedArticle"][article_index]["PubmedData"]["History"]:
-                    if date.attributes.get("PubStatus") == "pubmed":
-                        pub_date = "{}-{}-{}".format(date.get("Year"), date.get("Month"), date.get("Day"))
 
-                output.update({"pubmed_id": article["PMID"],
-                               "title": article["Article"]["ArticleTitle"],
-                               "authors": authors,
-                               "journal": article["Article"]["Journal"]["Title"],
-                               "score": score,
-                               "pub_date": {pub_date}
-                               })
+def format_output(articles, article_index, score):
+    article = articles["PubmedArticle"][article_index]["MedlineCitation"]
+    authors = []
+
+    for author in article["Article"]["AuthorList"]:
+        if "ForeName" in author:
+            authors.append(author.get("ForeName") + " " + author.get("LastName"))
+        else:
+            authors.append(author.get("LastName"))
+
+    pub_date = "unknown"
+
+    for date in articles["PubmedArticle"][article_index]["PubmedData"]["History"]:
+        if date.attributes.get("PubStatus") == "pubmed":
+            pub_date = "{}-{}-{}".format(date.get("Year"), date.get("Month"), date.get("Day"))
+
+    return ({"pubmed_id": article["PMID"],
+             "title": article["Article"]["ArticleTitle"],
+             "authors": authors,
+             "journal": article["Article"]["Journal"]["Title"],
+             "score": score,
+             "pub_date": pub_date})
 
 
 def create_products(search_words):
@@ -122,17 +134,18 @@ def preprocess_data(data):
     return abstracts
 
 
-def calculate_score(search_words, abstract):
+def calculate_score(search_words, abstract, title):
     score = 0
 
     for words in search_words:
         for word in words:
+            if word in title:
+                score += 10
+
             score += abstract.count(word) * 5
 
     return score
 
 
-# sys.argv[0]
-main([["anti-glycenia", "blood sugar", "Daf16"],
-      ["gallic acid", "charetin", "vicine", "polypeptide p"],
-      ["cushing's syndrome", "Diabetic Acidosis"]])
+if __name__ == "__main__":
+    main(sys.argv[0])
