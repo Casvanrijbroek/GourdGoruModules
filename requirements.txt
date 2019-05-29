@@ -1,2 +1,5 @@
-biopython
 nltk
+Bio
+pymongo
+biopython
+dnspython
