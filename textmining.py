@@ -10,6 +10,10 @@ import re
 need to be given in multiple categories (nested lists), because the script only compares keywords of different 
 categories with each other. To use this script, simply import it into your application and pass the nested list of
 search terms to the main function (other functions can be called independently to fit a different pipeline too). 
+
+Author: Cas van Rijbroek
+Date: 03-jun-2019
+Version: 1.2
 """
 
 
